@@ -1,44 +1,77 @@
 #!/usr/bin/env node
 
 var toHTML = require('markdown').markdown.toHTML
+  , program = require('commander')
+  , fs = require('fs')
+
+program
+  .version('0.0.1')
+  .option('-h, --header <path>', 'Override the default header in which to wrap output html')
+  .option('-f, --footer <path>', 'Override the default footer in which to wrap output html')
+
+program.on('--help', function() {
+  console.log('  Use over stdio:')
+  console.log('')
+  console.log('    $ html-doc < source.html > output.html')
+  console.log('')
+})
+
+program.parse(process.argv)
 
 var defaultHeader =
-  [ '<!DOCTYPE html>'
-  , '<html>'
-  , '  <head>'
-  , '    <title>HTML Doc</title>'
-  , '    <style>'
-  , '      body {'
-  , '        padding: 40px 0;'
-  , '        font: 13px/1.4 Lucida Sans, sans-serif;'
-  , '        width: 1000px;'
-  , '        margin: 0 auto;'
-  , '      }'
-  , '      pre code {'
-  , '        font: 12px/1.5 Menlo, Monaco, monospace;'
-  , '        white-space: pre-wrap;'
-  , '      }'
-  , '      .code { float: right; width: 600px; }'
-  , '      .comment { float: left; clear: both; width: 380px; }'
-  , '    </style>'
-  , '  </head>'
-  , '  <body>'
-  ].join('\n')
+    [ '<!DOCTYPE html>'
+    , '<html>'
+    , '  <head>'
+    , '    <title>HTML Doc</title>'
+    , '    <style>'
+    , '      body {'
+    , '        padding: 40px 0;'
+    , '        font: 13px/1.4 Lucida Sans, sans-serif;'
+    , '        width: 1000px;'
+    , '        margin: 0 auto;'
+    , '      }'
+    , '      pre code {'
+    , '        font: 12px/1.5 Menlo, Monaco, monospace;'
+    , '        white-space: pre-wrap;'
+    , '      }'
+    , '      .code { float: right; width: 600px; }'
+    , '      .comment { float: left; clear: both; width: 380px; }'
+    , '    </style>'
+    , '  </head>'
+    , '  <body>'
+    ].join('\n')
+
   , defaultFooter =
-  [ '  </body>'
-  , '</html>'
-  ].join('\n')
+    [ '  </body>'
+    , '</html>'
+    ].join('\n')
 
-var comments = []
+  , header
+  , footer
+  , comments = []
   , code = []
-  , input =''
+  , input = ''
 
+
+if (program.header) {
+  header = fs.readFileSync(program.header)
+} else {
+  header = defaultHeader
+}
+
+if (program.footer) {
+  footer = fs.readFileSync(program.footer)
+} else {
+  footer = defaultFooter
+}
 
 process.stdin.on('data', function (chunk) {
   input += chunk
 })
 
 process.stdin.on('end', generate)
+
+// Start reading from stdin
 process.stdin.resume()
 
 function generate() {
@@ -55,12 +88,17 @@ function generate() {
     }
   }
 
-  process.stdout.write(defaultHeader)
+  process.stdout.write(header)
   code.forEach(function (code, i) {
-    process.stdout.write('<div class="code"><pre><code>' + htmlEscape(code.trim()) + '</pre></code></div>')
-    process.stdout.write('<div class="comment">' + comments[i] + '</div>')
+    process.stdout.write(
+      '<div class="code"><pre><code>' +
+      htmlEscape(code.trim()) +
+      '</pre></code></div>')
+    if (comments[i]) {
+      process.stdout.write('<div class="comment">' + comments[i] + '</div>')
+    }
   })
-  process.stdout.write(defaultFooter)
+  process.stdout.write(footer)
 
 }
 
