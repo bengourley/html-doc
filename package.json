@@ -1,0 +1,11 @@
+{
+  "name": "html-doc",
+  "version": "0.0.0",
+  "description": "Generate html documentation from Markdown comments",
+  "dependencies": {
+    "markdown": "~0.4.0"
+  },
+  "author": "Ben Gourley",
+  "license": "BSD",
+  "bin": "html-doc"
+}

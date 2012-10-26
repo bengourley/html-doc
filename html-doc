@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+
+var toHTML = require('markdown').markdown.toHTML
+
+var defaultHeader =
+  [ '<!DOCTYPE html>'
+  , '<html>'
+  , '  <head>'
+  , '    <title>HTML Doc</title>'
+  , '    <style>'
+  , '      body {'
+  , '        padding: 40px 0;'
+  , '        font: 13px/1.4 Lucida Sans, sans-serif;'
+  , '        width: 1000px;'
+  , '        margin: 0 auto;'
+  , '      }'
+  , '      pre code {'
+  , '        font: 12px/1.5 Menlo, Monaco, monospace;'
+  , '        white-space: pre-wrap;'
+  , '      }'
+  , '      .code { float: right; width: 600px; }'
+  , '      .comment { float: left; clear: both; width: 380px; }'
+  , '    </style>'
+  , '  </head>'
+  , '  <body>'
+  ].join('\n')
+  , defaultFooter =
+  [ '  </body>'
+  , '</html>'
+  ].join('\n')
+
+var comments = []
+  , code = []
+  , input =''
+
+
+process.stdin.on('data', function (chunk) {
+  input += chunk
+})
+
+process.stdin.on('end', generate)
+process.stdin.resume()
+
+function generate() {
+  while (input.length) {
+    var match = input.match(/<!--[\s\S]*?-->/)
+    if (match) {
+      code.push(input.substr(0, match.index))
+      input = input.substr(match.index)
+      comments.push(formatComment(input.substr(0, match[0].length)))
+      input = input.substr(match[0].length)
+    } else {
+      code.push(input)
+      input = input.substr(input.length)
+    }
+  }
+
+  process.stdout.write(defaultHeader)
+  code.forEach(function (code, i) {
+    process.stdout.write('<div class="code"><pre><code>' + htmlEscape(code.trim()) + '</pre></code></div>')
+    process.stdout.write('<div class="comment">' + comments[i] + '</div>')
+  })
+  process.stdout.write(defaultFooter)
+
+}
+
+function formatComment(comment) {
+  var lines = comment.split(/\n/)
+    , processed = []
+  if (lines.length > 1) {
+    lines.pop()
+    lines.shift()
+    var leadws = lines[0].match(/^(\s*\|?\s*)./)[1]
+    lines.forEach(function (line) {
+      if (line.indexOf(leadws) === 0) {
+        processed.push(line.substr(leadws.length))
+      } else {
+        processed.push(line)
+      }
+    })
+    return toHTML(processed.join('\n'))
+  } else {
+    return toHTML(comment
+      .replace(/<!--\s*/, '')
+      .replace(/\s*-->/, ''))
+  }
+}
+
+function htmlEscape(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
